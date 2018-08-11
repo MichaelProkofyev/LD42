@@ -24,12 +24,13 @@ public struct SpawnedPiece
 
 public class Contstruction : MonoBehaviour {
 
-    public float pieceWidth = 1f;
+    public float pieceWidth = .5f;
 
     public int currentLeftPieceIndex;
     public int currentRightPieceIndex;
 
     [SerializeField] private Rigidbody2D[] availablePiecePrefabs = null;
+    [SerializeField] private Bijouteriya bijouteriaSkeletonPrefab;
 
     public List<SpawnedPiece> spawnedPieces = new List<SpawnedPiece>();
     private int leftPiecesCount;
@@ -53,7 +54,11 @@ public class Contstruction : MonoBehaviour {
         }
         else if (Input.GetKeyDown(KeyCode.Space))
         {
-            GiveBirth();
+            var newBijouteria = Instantiate(bijouteriaSkeletonPrefab, transform.position, Quaternion.identity);
+            newBijouteria.BeBorn(spawnedPieces);
+            spawnedPieces = new List<SpawnedPiece>();
+            leftPiecesCount = 0;
+            rightPiecesCount = 0;
         }
     }
 
@@ -68,13 +73,20 @@ public class Contstruction : MonoBehaviour {
         {
             rightPiecesCount++;
         }
-        var xOffset = pieceWidth * (leftDirection ? -leftPiecesCount : rightPiecesCount) + pieceWidth * (leftDirection ? 0.5f : -0.5f);
+        var xOffset = (pieceWidth + pieceWidth/2f) * (leftDirection ? -leftPiecesCount : rightPiecesCount) + pieceWidth * (leftDirection ? 0.5f : -0.5f);
         var selectedPiecePrefab = availablePiecePrefabs[pieceIndex];
         Vector3 piecePosition = transform.position + Vector3.right * xOffset;
         var newPieceRb = Instantiate(selectedPiecePrefab, piecePosition, Quaternion.identity);
         newPieceRb.isKinematic = true;
         newPieceRb.transform.parent = transform;
-        spawnedPieces.Add(new SpawnedPiece(newPieceRb, leftDirection));
+        if (leftDirection)
+        {
+            spawnedPieces.Insert(0, new SpawnedPiece(newPieceRb, leftDirection));
+        }
+        else
+        {
+            spawnedPieces.Add(new SpawnedPiece(newPieceRb, leftDirection));
+        }
         UpdateAvailablePieces();
     }
 
@@ -90,40 +102,5 @@ public class Contstruction : MonoBehaviour {
         {
             currentRightPieceIndex = Random.Range(0, availablePiecePrefabs.Length);
         } while (currentRightPieceIndex == currentLeftPieceIndex);
-    }
-
-    void GiveBirth()
-    {
-        Rigidbody2D lastLeftRb = null;
-        Rigidbody2D lastRightRb = null;
-
-        for (int index = 0; index < spawnedPieces.Count; index++)
-        {
-            var piece = spawnedPieces[index];
-            piece.rb.isKinematic = false;
-            if (piece.isLeft)
-            {
-                if (lastLeftRb != null)
-                {
-                    var newHinge = piece.rb.gameObject.AddComponent<SpringJoint2D>();
-                    newHinge.connectedBody = lastLeftRb;
-                }
-                lastLeftRb = piece.rb;
-            }
-            else
-            {
-                if (lastRightRb != null)
-                {
-                    var newHinge = piece.rb.gameObject.AddComponent<SpringJoint2D>();
-                    newHinge.connectedBody = lastRightRb;
-                }
-                lastRightRb = piece.rb;
-            }
-
-        }
-
-        spawnedPieces.Clear();
-        leftPiecesCount = 0;
-        rightPiecesCount = 0;
     }
 }
