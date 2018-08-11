@@ -10,17 +10,6 @@ enum InputDirection
     DOWN
 }
 
-public struct SpawnedPiece
-{
-    public Rigidbody2D rb;
-    public bool isLeft;
-
-    public SpawnedPiece(Rigidbody2D rb, bool isLeft)
-    {
-        this.rb = rb;
-        this.isLeft = isLeft;
-    }
-}
 
 public class Contstruction : MonoBehaviour {
 
@@ -29,10 +18,15 @@ public class Contstruction : MonoBehaviour {
     public int currentLeftPieceIndex;
     public int currentRightPieceIndex;
 
-    [SerializeField] private Rigidbody2D[] availablePiecePrefabs = null;
+    [SerializeField] private PieceBase[] availablePiecePrefabs = null;
     [SerializeField] private Bijouteriya bijouteriaSkeletonPrefab;
+    [SerializeField] private Transform previewParentLeft;
+    [SerializeField] private Transform previewParentRight;
 
-    public List<SpawnedPiece> spawnedPieces = new List<SpawnedPiece>();
+    PieceBase previewPieceLeft;
+    PieceBase previewPieceRight;
+
+    public List<PieceBase> spawnedPieces = new List<PieceBase>();
     private int leftPiecesCount;
     private int rightPiecesCount;
 
@@ -56,7 +50,7 @@ public class Contstruction : MonoBehaviour {
         {
             var newBijouteria = Instantiate(bijouteriaSkeletonPrefab, transform.position, Quaternion.identity);
             newBijouteria.BeBorn(spawnedPieces);
-            spawnedPieces = new List<SpawnedPiece>();
+            spawnedPieces = new List<PieceBase>();
             leftPiecesCount = 0;
             rightPiecesCount = 0;
         }
@@ -74,18 +68,29 @@ public class Contstruction : MonoBehaviour {
             rightPiecesCount++;
         }
         var xOffset = (pieceWidth + pieceWidth/2f) * (leftDirection ? -leftPiecesCount : rightPiecesCount) + pieceWidth * (leftDirection ? 0.5f : -0.5f);
-        var selectedPiecePrefab = availablePiecePrefabs[pieceIndex];
         Vector3 piecePosition = transform.position + Vector3.right * xOffset;
-        var newPieceRb = Instantiate(selectedPiecePrefab, piecePosition, Quaternion.identity);
-        newPieceRb.isKinematic = true;
-        newPieceRb.transform.parent = transform;
+
+        PieceBase piece = leftDirection ? previewPieceLeft : previewPieceRight;
+
+        //Clear the prieviews
         if (leftDirection)
         {
-            spawnedPieces.Insert(0, new SpawnedPiece(newPieceRb, leftDirection));
+            Destroy(previewPieceRight.rb.gameObject);
         }
         else
         {
-            spawnedPieces.Add(new SpawnedPiece(newPieceRb, leftDirection));
+            Destroy(previewPieceLeft.rb.gameObject);
+        }
+        piece.rb.transform.position = piecePosition;
+        piece.rb.transform.parent = transform;
+
+        if (leftDirection)
+        {
+            spawnedPieces.Insert(0, piece);
+        }
+        else
+        {
+            spawnedPieces.Add(piece);
         }
         UpdateAvailablePieces();
     }
@@ -102,5 +107,29 @@ public class Contstruction : MonoBehaviour {
         {
             currentRightPieceIndex = Random.Range(0, availablePiecePrefabs.Length);
         } while (currentRightPieceIndex == currentLeftPieceIndex);
+
+        SpawnPiece(true);
+        SpawnPiece(false);
+    }
+
+    void SpawnPiece(bool isLeft)
+    {
+        var parentTransform = isLeft ? previewParentLeft : previewParentRight;
+        int pieceIndex = isLeft ? currentLeftPieceIndex : currentRightPieceIndex;
+        var selectedPiecePrefab = availablePiecePrefabs[pieceIndex];
+        var newPiece = Instantiate(selectedPiecePrefab, parentTransform.position, Quaternion.identity);
+        newPiece.transform.parent = parentTransform;
+        float scaleX = Random.Range(pieceWidth / 2f, pieceWidth * 2);
+        newPiece.transform.localScale = new Vector3(pieceWidth, pieceWidth, 1);
+        newPiece.rb.isKinematic = true;
+
+        if (isLeft)
+        {
+            previewPieceLeft = newPiece;
+        }
+        else
+        {
+            previewPieceRight = newPiece;
+        }
     }
 }

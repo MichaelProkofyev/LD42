@@ -4,24 +4,25 @@ using UnityEngine;
 
 public class Bijouteriya : MonoBehaviour {
 
-    public List<SpawnedPiece> spawnedPieces = new List<SpawnedPiece>();
+    public List<PieceBase> spawnedPieces = new List<PieceBase>();
 
     [SerializeField] private LineRenderer thread;
 
-    public void BeBorn(List<SpawnedPiece> spawnedPieces)
+    public void BeBorn(List<PieceBase> spawnedPieces)
     {
         this.spawnedPieces = spawnedPieces;
 
         for (int index = 0; index < spawnedPieces.Count; index++)
         {
             var piece = spawnedPieces[index];
+            piece.rb.GetComponent<PieceBase>().OnDestroyed += OnPieceDestroyed;
             piece.rb.transform.parent = transform;
-            piece.rb.isKinematic = false;
+            piece.Activated();
 
             //Fix first and last piece
             if (index == 0 || index == spawnedPieces.Count - 1)
             {
-                piece.rb.gameObject.AddComponent<FixedJoint2D>();
+                //piece.rb.gameObject.AddComponent<FixedJoint2D>();
             }
             
             //Conect each piece with the prev one
@@ -39,7 +40,7 @@ public class Bijouteriya : MonoBehaviour {
     SpringJoint2D AddJoint(GameObject targetGameObject)
     {
         var newJoint = targetGameObject.AddComponent<SpringJoint2D>();
-        newJoint.distance = .5f;
+        newJoint.distance = 1.5f;
         newJoint.dampingRatio = .9f;
         newJoint.frequency = 5f;
         newJoint.autoConfigureDistance = false;
@@ -62,5 +63,11 @@ public class Bijouteriya : MonoBehaviour {
             }
             thread.SetPositions(newPositions);
         }
+    }
+
+    private void OnPieceDestroyed(PieceBase p)
+    {
+        spawnedPieces.Remove(p);
+        thread.positionCount = spawnedPieces.Count;
     }
 }
